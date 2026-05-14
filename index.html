@@ -29,45 +29,316 @@
       </p>
     </header>
 
-    <!-- CONTENT SECTIONS -->
+    <!-- INTRODUCTION -->
     <section>
-      <h2>Introduction</h2>
-      <p></p>
+      <h2>1. Introduction</h2>
+
+      <h3>Project Goal</h3>
+      <p>
+        The end goal of this project is to build a fully autonomous robot waiter using a TurtleBot3 platform that can navigate a simulated restaurant environment, take food and drink orders from a diner via a command-line interface, plan an optimal pickup route across kitchen and water station stops, deliver the order to a dining table, and return to the kitchen, all without human intervention and without colliding with static or dynamic obstacles.
+      </p>
+
+      <h3>Why This Project is Interesting</h3>
+      <p>
+        This project sits at the intersection of perception, planning, mapping, and human-robot interaction, each of which presents a distinct technical challenge:
+      </p>
+
+      <ul>
+        <li>
+          Building and maintaining a dynamic occupancy grid that fuses pre-built SLAM maps with real-time LiDAR and camera updates to reflect obstacles placed after mapping.
+        </li>
+        <li>
+          Obstacle detection using a YOLO segmentation model running on-board to identify and range people and objects from a Logitech Webcam.
+        </li>
+        <li>
+          Global path planning using Lee's BFS algorithm on a coarsened occupancy grid, with obstacle inflation and line-of-sight path simplification to produce smooth, collision-safe routes.
+        </li>
+      </ul>
+
+      <h3>Real-World Applications</h3>
+      <p>
+        The techniques developed in this project are directly applicable to a range of real-world autonomous service robot deployments:
+      </p>
+
+      <ul>
+        <li>Restaurant and hotel service robots delivering food, drinks, and amenities in dynamic human environments.</li>
+        <li>Hospital logistics robots transporting medications, specimens, or supplies while safely navigating around staff and patients.</li>
+        <li>Cleaning floor-cleaning robots operating in commercial spaces.</li>
+        <li>Warehouse picking and delivering robots in partially structured environments with moving workers.</li>
+      </ul>
     </section>
 
+    <!-- DESIGN -->
     <section>
-      <h2>Design</h2>
-      <p></p>
+      <h2>2. Design</h2>
+
+      <h3>Design Criteria and Desired Functionality</h3>
+
+      <p>The system must meet the following design criteria:</p>
+
+      <ul>
+        <li>Navigate autonomously from kitchen to table to water station and back without collisions.</li>
+        <li>Accept orders from a diner and dispatch the correct route sequence.</li>
+      </ul>
+
+      <p>The desired functionalities include:</p>
+
+      <ul>
+        <li>Detect and stop for dynamic obstacles in real time, then resume when clear.</li>
+        <li>Replan around static obstacles added to the environment after the initial SLAM map was built.</li>
+      </ul>
+
+      <h3>System Design</h3>
+
+      <p>
+        The system is structured as four software layers communicating over ROS 2 topics:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Sensing:</strong> LiDAR-based occupancy grid updates (<code>occupancy_grid_2d</code>) and camera-based YOLO obstacle detection (<code>camera_perception</code>).
+        </li>
+
+        <li>
+          <strong>Mapping and Planning:</strong> A pre-built SLAM map fused with dynamic LiDAR updates, planned over by a Lee BFS global planner (<code>lee_planner</code>) with obstacle inflation and line-of-sight simplification.
+        </li>
+
+        <li>
+          <strong>Control:</strong> Proportional heading and distance controller (<code>turtlebot_control</code>) with obstacle hold logic (<code>/obstacle_hold</code>).
+        </li>
+
+        <li>
+          <strong>Interaction:</strong> A state-machine executive (<code>waiter_executive</code>) handling order intake, route sequencing, and diner communication, plus a kitchen display node (<code>kitchen_node</code>).
+        </li>
+      </ul>
+
+      <h3>Design Choices and Trade-Offs</h3>
+
+      <ul>
+        <li>
+          <strong>Lee BFS vs A*:</strong> BFS is simpler and correct for small grids. A* would be faster on larger maps but adds heuristic tuning. BFS was chosen for simplicity and reliability.
+        </li>
+
+        <li>
+          <strong>Monocular depth estimation:</strong> Used mask pixel count and known object area for depth estimation. This avoids the need for a depth camera but is less accurate at long range or with occlusions.
+        </li>
+      </ul>
+
+      <h3>Impact of Design Choices</h3>
+
+      <p>
+        These choices provided a reliable starting point for autonomous navigation in a known indoor environment. However, the system still relies heavily on environments with mostly known obstacles and can struggle with rapidly changing scenes or ambiguous obstacle types.
+      </p>
     </section>
 
+    <!-- IMPLEMENTATION -->
     <section>
-      <h2>Implementation</h2>
-      <p></p>
+      <h2>3. Implementation</h2>
+
+      <h3>Hardware</h3>
+
+      <ul>
+        <li>
+          <strong>TurtleBot3:</strong> Locomotion platform with differential drive motors and wheel odometry.
+        </li>
+
+        <li>
+          <strong>Logitech Webcam:</strong> Forward-facing camera providing <code>/image_raw</code> and <code>/camera_info</code> streams for YOLO obstacle detection.
+        </li>
+
+        <li>
+          <strong>TurtleBot3 LiDAR:</strong> 360-degree planar LiDAR providing <code>/scan</code> for occupancy grid updates.
+        </li>
+
+        <li>
+          <strong>3D-printed rear tray:</strong> Custom rear-mounted serving platform designed to hold food and drink containers securely.
+        </li>
+      </ul>
+
+      <h3>Software Overview</h3>
+
+      <p>
+        The <code>restaurant_mapping</code> package maintains a map of the simulated restaurant, which combines a static pre-defined map with an occupancy grid informed by the TurtleBot's LiDAR sensor. The included <code>lee_planner</code> node uses these map representations along with predefined waypoints to find an unobstructed path and route the robot to its next objective.
+      </p>
+
+      <p>
+        The <code>mapping_node</code> loads a saved map from paired <code>.pgm</code> and <code>.yaml</code> files. <code>map_loader.py</code> updates the occupancy grid with permanent obstacles from the saved map, while the dynamic occupancy grid is continuously updated using the <code>/scan</code> topic.
+      </p>
+
+      <p>
+        The robot must be initialized in the same place on the floor for the <code>map → base_link</code> transform to remain accurate and for the dynamic map to overlay seamlessly onto the static map. The static and dynamic maps are fused into a combined <code>/map</code> topic used for planning.
+      </p>
+
+      <p>
+        Before planning, obstacle radii are inflated to ensure planned paths do not lead to collisions. The planner then coarsens the map by a factor of 7, making each cell approximately 0.35 meters wide, roughly the size of the TurtleBot itself. Goal points are snapped to the nearest free cell if the original waypoint is occupied.
+      </p>
+
+      <p>
+        The path is planned using Lee’s BFS algorithm and refined using line-of-sight simplification. The planner publishes:
+      </p>
+
+      <ul>
+        <li><code>/planning_grid</code></li>
+        <li><code>/waypoint_markers</code></li>
+        <li><code>/planned_path</code></li>
+      </ul>
+
+      <h3>Complete System Workflow</h3>
+
+      <ol>
+        <li>The diner enters an order through the command-line interface.</li>
+        <li>The waiter executive determines the required sequence of destinations.</li>
+        <li>The mapping and planning stack generates a safe navigation path.</li>
+        <li>The TurtleBot follows the generated waypoints using real-time motor control.</li>
+        <li>LiDAR and camera perception continuously monitor for obstacles.</li>
+        <li>If a dynamic obstacle is detected, the robot pauses and waits.</li>
+        <li>If a static obstacle blocks the path, the planner replans a new route.</li>
+        <li>The robot delivers the order and returns to the kitchen autonomously.</li>
+      </ol>
     </section>
 
+    <!-- RESULTS -->
     <section>
-      <h2>Results and Demo</h2>
+      <h2>4. Results</h2>
 
-      <!-- VIDEO EMBED -->
+      <h3>Performance</h3>
+
+      <p>
+        The robot successfully collected food and water items and transported them between the kitchen, water station, and dining table stations.
+      </p>
+
+      <ul>
+        <li>The robot successfully navigated simple indoor environments.</li>
+        <li>LiDAR was used to generate a map of the room and define restaurant points of interest.</li>
+        <li>The robot received orders from a human operator in the kitchen area.</li>
+        <li>The robot detected and avoided obstacles during navigation.</li>
+        <li>The system planned safe navigation paths and executed them using real-time motor control.</li>
+      </ul>
+
+      <p>
+        Overall, the robot successfully demonstrated obstacle detection, safe path planning, and autonomous transportation between restaurant stations.
+      </p>
+
+      <p>
+        One major limitation was that the system initially treated all obstacles identically, causing slow replanning behavior and delays in deciding whether to wait or reroute.
+      </p>
+
+      <h3>Demo Video</h3>
+
       <video controls width="100%">
         <source src="assets/demo.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </section>
 
+    <!-- CONCLUSION -->
     <section>
-      <h2>Conclusion</h2>
-      <p></p>
+      <h2>5. Conclusion</h2>
+
+      <h3>Project Outcome</h3>
+
+      <p>
+        Our results were promising, but integration challenges prevented the system from achieving the level of fluidity and robustness we originally envisioned. We waited too long to integrate independently developed components, which introduced unexpected bugs and unstable behavior during final testing.
+      </p>
+
+      <p>
+        Despite these challenges, the robot successfully demonstrated autonomous navigation throughout the simulated restaurant environment.
+      </p>
+
+      <h3>Difficulties Encountered</h3>
+
+      <ul>
+        <li>
+          <strong>NumPy Compatibility:</strong> NumPy 2.x incompatibility with the system OpenCV package required downgrading to <code>numpy&lt;2.0</code> before Ultralytics YOLO could import correctly.
+        </li>
+
+        <li>
+          <strong>Obstacle Handling:</strong> The robot initially took too long to reroute around obstacles and struggled to determine whether it should hold position or immediately replan.
+        </li>
+      </ul>
+
+      <h3>Future Improvements</h3>
+
+      <p>
+        Future iterations of the project would improve obstacle classification and decision-making:
+      </p>
+
+      <ul>
+        <li>Classify obstacles as dynamic (people, backpacks, handbags) or static (chairs, tables, laptops).</li>
+        <li>Trigger immediate replanning for static obstacles.</li>
+        <li>Use a timed hold-and-wait behavior for dynamic obstacles before replanning.</li>
+      </ul>
     </section>
 
+    <!-- TEAM -->
     <section>
-      <h2>Team Bios</h2>
-      <p></p>
+      <h2>6. Team</h2>
+
+      <h3>Team Members</h3>
+
+      <ul>
+        <li>
+          <strong>Ha Nguyen:</strong> Senior in Data Science with a concentration in Robotics.
+        </li>
+
+        <li>
+          <strong>Angela Lee:</strong> Senior majoring in Computer Science and Psychology.
+        </li>
+        
+        <li>
+          <strong>Somil Jethra:</strong> Senior majoring in Electrical Engineering and Computer Sciences.
+        </li>
+
+        <li>
+          <strong>Matt Cullen:</strong> Senior majoring in Electrical Engineering and Computer Sciences.
+        </li>
+
+        <li>
+          <strong>Aarsh Shroff:</strong> Junior majoring in Computer Science.
+        </li>
+      </ul>
+
+      <h3>Contributions</h3>
+
+      <ul>
+        <li>
+          <strong>Ha Nguyen:</strong> Camera perception node, YOLO integration, depth estimation, TurtleBot control node, obstacle hold integration.
+        </li>
+
+        <li>
+          <strong>Somil Jethra:</strong> User command terminal, kitchen node, waiter executive, UI for diner ordering and kitchen monitoring.
+        </li>
+
+        <li>
+          <strong>Matt Cullen:</strong> Restaurant mapping package, including mapping waypoints and LiDAR path planning around obstacles
+        </li>
+
+        <li>
+          <strong>Angela Lee:</strong> Restaurant mapping, map waypoints, LiDAR path planning, and project website setup.
+        </li>
+
+        <li>
+          <strong>Aarsh Shroff:</strong> User CLI and state machine, improved depth estimation methods in the perception node.
+        </li>
+      </ul>
     </section>
 
+    <!-- SUPPLEMENTAL -->
     <section>
-      <h2>Supplemental Project Materials</h2>
-      <p></p>
+      <h2>7. Supplemental Project Materials</h2>
+
+      <ul>
+        <li>Code, URDFs, and launch files</li>
+        <li>CAD models for custom hardware</li>
+        <li>Component datasheets</li>
+        <li>Additional videos and images</li>
+        <li>
+          GitHub Repository:
+          <a href="https://github.com/MattCullen6154/106aFinal" target="_blank">
+            github.com/MattCullen6154/106aFinal
+          </a>
+        </li>
+      </ul>
     </section>
 
   </div>
