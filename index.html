@@ -49,24 +49,15 @@
 
       <h3>Project Goal</h3>
       <p>
-        The end goal of this project is to build a fully autonomous robot waiter using a TurtleBot3 platform that can navigate a simulated restaurant environment, take food and drink orders from a diner via a command-line interface, plan an optimal pickup route across kitchen and water station stops, deliver the order to a dining table, and return to the kitchen, all without human intervention and without colliding with static or dynamic obstacles.
+        The goal of this project is to build a fully autonomous robot using a TurtleBot3 platform that can navigate a simulated restaurant environment, handling food and drink orders via a command-line interfact, and completing multi-stop delivery tasks without human intervention while avoiding collisions with both static and dynamic obstacles.
+      </p>
+      <p>
+        This project integrates the core components of atuonomous robotics: perception, planning, mapping, and human-robot interaction. It combines them into a unified system for a real-world service robot behavior.
       </p>
 
       <p>
         This project sits at the intersection of perception, planning, mapping, and human-robot interaction, each of which presents a distinct technical challenge:
       </p>
-
-      <ul>
-        <li>
-          Building and maintaining a dynamic occupancy grid that fuses pre-built SLAM maps with real-time LiDAR and camera updates to reflect obstacles placed after mapping.
-        </li>
-        <li>
-          Obstacle detection using a YOLO segmentation model running on-board to identify and range people and objects from a Logitech Webcam.
-        </li>
-        <li>
-          Global path planning using Lee's BFS algorithm on a coarsened occupancy grid, with obstacle inflation and line-of-sight path simplification to produce smooth, collision-safe routes.
-        </li>
-      </ul>
 
       <h3>Real-World Applications</h3>
       <p>
@@ -156,12 +147,12 @@
         </li>
 
         <li>
-          <strong>Logitech Webcam:</strong> Forward-facing camera providing <code>/image_raw</code> and <code>/camera_info</code> streams for YOLO obstacle detection.
+          <strong>Logitech Webcam:</strong> Forward-facing camera for YOLO obstacle detection.
           <img src="logitech.jpeg" alt="Logitech Webcam">
         </li>
 
         <li>
-          <strong>TurtleBot3 LiDAR:</strong> 360-degree planar LiDAR providing <code>/scan</code> for occupancy grid updates.
+          <strong>TurtleBot3 LiDAR:</strong> 360-degree planar LiDAR for occupancy grid updates.
           <img src="lidar.jpeg" alt="TurtleBot3 LiDAR">
         </li>
 
