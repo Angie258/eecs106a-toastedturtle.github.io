@@ -104,24 +104,24 @@
       <h3>System Design</h3>
 
       <p>
-        The system is structured as four software layers communicating over ROS 2 topics:
+        The system is structured as four high-level software layers communicating over ROS 2 topics:
       </p>
 
       <ul>
         <li>
-          <strong>Sensing:</strong> LiDAR-based occupancy grid updates (<code>occupancy_grid_2d</code>) and camera-based YOLO obstacle detection (<code>camera_perception</code>).
+          <strong>Sensing:</strong> LiDAR and camera-based perception for environment understanding
         </li>
 
         <li>
-          <strong>Mapping and Planning:</strong> A pre-built SLAM map fused with dynamic LiDAR updates, planned over by a Lee BFS global planner (<code>lee_planner</code>) with obstacle inflation and line-of-sight simplification.
+          <strong>Mapping and Planning:</strong> A pre-built SLAM map fused with dynamic LiDAR updates, planned over by a Lee BFS global planner
         </li>
 
         <li>
-          <strong>Control:</strong> Proportional heading and distance controller (<code>turtlebot_control</code>) with obstacle hold logic (<code>/obstacle_hold</code>).
+          <strong>Control:</strong> Proportional controller for waypoint tracking with reactive obstacle stopping.
         </li>
 
         <li>
-          <strong>Interaction:</strong> A state-machine executive (<code>waiter_executive</code>) handling order intake, route sequencing, and diner communication, plus a kitchen display node (<code>kitchen_node</code>).
+          <strong>Interaction:</strong> State machine for order handling and task coordination between robot modules.
         </li>
       </ul>
 
@@ -161,7 +161,7 @@
 
         <li>
           <strong>Logitech Webcam:</strong> Forward-facing camera providing <code>/image_raw</code> and <code>/camera_info</code> streams for YOLO obstacle detection.
-          <img src="logitech.jpeg" alt="LogitechWebcam">
+           <img src="logitech.jpeg" alt="LogitechWebcam">
         </li>
 
         <li>
@@ -177,31 +177,63 @@
 
       <h3>Software Overview</h3>
 
-      <p>
-        The <code>restaurant_mapping</code> package maintains a map of the simulated restaurant, which combines a static pre-defined map with an occupancy grid informed by the TurtleBot's LiDAR sensor. The included <code>lee_planner</code> node uses these map representations along with predefined waypoints to find an unobstructed path and route the robot to its next objective.
-      </p>
+      <h4>1. Sensing Layer</h4>
+      The sensing layer is responsible for real-time perception of the environment using both LiDAR and vision.
+      <ul>
+        <li>LiDAR sensing is handled <code>/scan</code>, which is converted into a local occupancy grid (<code>occupancy_grid_2d</code>). This grid captures a static stored structure and newly introduced obstacles in the environment.</li>
+        <li>Camera-based perception is handled by the <code>camera_perception</code> node, which runs a YOLOv8 segmentation model on <code>/image_raw</code>. It detects semantically meaningful obstacles (people, chairs, backpacks, etc.) and estimates their 3D position using mask-based depth estimation and the camera intrinsics. The resulting point is then transformed into the robot <code>base_link</code> using a fixed camera-to-base transform. The node tracks the closest detected obstacle per frame.</li>
+      </ul>
+      The perception system outputs:
+      <ul>
+        <li><code>/obstacle_point</code> (3D obstacle location in <code>base_link</code>)</li>
+        <li><code>/obstacle_hold</code> (binary safety signal for reactive stopping)</li>
+      </ul>
 
-      <p>
-        The <code>mapping_node</code> loads a saved map from paired <code>.pgm</code> and <code>.yaml</code> files. <code>map_loader.py</code> updates the occupancy grid with permanent obstacles from the saved map, while the dynamic occupancy grid is continuously updated using the <code>/scan</code> topic.
-      </p>
-
-      <p>
-        The robot must be initialized in the same place on the floor for the <code>map → base_link</code> transform to remain accurate and for the dynamic map to overlay seamlessly onto the static map. The static and dynamic maps are fused into a combined <code>/map</code> topic used for planning.
-      </p>
-
-      <p>
-        Before planning, obstacle radii are inflated to ensure planned paths do not lead to collisions. The planner then coarsens the map by a factor of 7, making each cell approximately 0.35 meters wide, roughly the size of the TurtleBot itself. Goal points are snapped to the nearest free cell if the original waypoint is occupied.
-      </p>
-
-      <p>
-        The path is planned using Lee’s BFS algorithm and refined using line-of-sight simplification. The planner publishes:
-      </p>
-
+      <h4>2. Mapping and Planning Layer</h4>
+      The mapping system fuses a pre-built SLAM map with live LiDAR updates to have a continuously updated representation of the environment.
+      <ul>
+        <li>A static occupancy map is loaded from <code>.pgm</code> and <code>.yaml</code> files via <code>map_loader.py</code>.</li>
+        <li>Dynamic obstacles are integrated using real-time updates from <code>/scan</code>.</li>
+        <li>The resulting fused representation is published as a combined <code>/map</code>.</li>
+      </ul>
+      The <code>lee_planner</code> node performs global path planning using a Lee’s BFS algorithm over a coarsened occupancy grid.
+      Key design steps include:
+      <ul>
+        <li>Obstacle inflation to ensure safe clearance margins</li>
+        <li>Grid downsampling (factor of 7) to improve planning efficiency</li>
+        <li>Goal snapping to nearest free cell if occupied</li>
+        <li>Line-of-sight path simplification to reduce unnecessary waypoints</li>
+      </ul>
+      The planner publishes:
       <ul>
         <li><code>/planning_grid</code></li>
         <li><code>/waypoint_markers</code></li>
         <li><code>/planned_path</code></li>
       </ul>
+
+      <h4>3. Control Layer</h4>
+      The control layer converts planned paths into motor commands for the robot.
+      A proportional controller (turtlebot_control) regulates:
+      <ul>
+        <li>Heading alignment toward the next waypoint</li>
+        <li>Forward velocity based on Euclidean distance to goal</li>
+      </ul>
+      This layer also integrates reactive safety behavior:
+      <ul>
+        <li>Subscribes to <code>/obstacle_hold</code></li>
+        <li>Immediately halts motion when a dynamic obstacle is detected</li>
+        <li>Resumes execution once the path is clear</li>
+      </ul>
+
+      <h4>4. Interaction Layer</h4>
+      The interaction layer manages high-level task execution and human-robot communication.
+      The <code>waiter_executive</code> node implements a state machine that:
+      <ul>
+        <li>Accepts diner orders via a command-line interface</li>
+        <li>Converts orders into a sequence of navigation goals (kitchen, water station, table)</li>
+        <li>Coordinates task execution across the robot stack</li>
+      </ul>
+      A companion <code>kitchen_node</code> sends the order to the chef.
 
       <h3>Complete System Workflow</h3>
 
@@ -338,7 +370,7 @@
         <li>Use a timed hold-and-wait behavior for dynamic obstacles before replanning.</li>
       </ul>
     </section>
--
+
     <!-- TEAM -->
     <section>
       <h2>Meet the Toasted Turtle Team!</h2>
