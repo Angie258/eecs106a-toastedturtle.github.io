@@ -76,8 +76,8 @@
       <ul>
         <li>Restaurant and hotel service robots delivering food, drinks, and amenities in dynamic human environments.</li>
         <li>Hospital logistics robots transporting medications, specimens, or supplies while safely navigating around staff and patients.</li>
-        <li>Cleaning floor-cleaning robots operating in commercial spaces.</li>
-        <li>Warehouse picking and delivering robots in partially structured environments with moving workers.</li>
+        <li>Autonomous floor-cleaning robots operating in commercial spaces.</li>
+        <li>Warehouse picking and delivering robots in partially structured environments alongside human workers.</li>
       </ul>
     </section>
 
@@ -134,6 +134,9 @@
 
         <li>
           <strong>Monocular depth estimation:</strong> Used mask pixel count and known object area for depth estimation. This avoids the need for a depth camera but is less accurate at long range or with occlusions.
+        </li>
+        <li>
+          <strong>Dynamic vs static obstacle classification:</strong> Classifying obstacles by COCO class (person/bag = dynamic; chair/table = static) avoids the failure mode of waiting indefinitely for a chair to move. The cost is that misclassified obstacles get the wrong response, though YOLO’s accuracy on these classes is high.
         </li>
       </ul>
 
