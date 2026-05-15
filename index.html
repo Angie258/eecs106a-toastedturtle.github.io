@@ -30,18 +30,17 @@
 
       <p>
         GitHub Repository:
-        <a href="https://github.com/MattCullen6154/106aFinal" target="_blank">
-            github.com/MattCullen6154/106aFinal
+        <a href="https://github.com/MattCullen6154/106aFinal" target="_blank" rel="noopener noreferrer">
+          github.com/MattCullen6154/106aFinal
         </a>
       </p>
 
       <p>
         Demo Presentation:
-        <a href="https://docs.google.com/presentation/d/1bJURW6zBck6n5zchOr6-ATjfsHr0vKo0BQ73CIU3QkM/edit?usp=drive_link" target="_blank">
-            Slide Deck
+        <a href="https://docs.google.com/presentation/d/1bJURW6zBck6n5zchOr6-ATjfsHr0vKo0BQ73CIU3QkM/edit?usp=drive_link" target="_blank" rel="noopener noreferrer">
+          Slide Deck
         </a>
       </p>
-      
     </header>
 
     <!-- INTRODUCTION -->
@@ -52,6 +51,7 @@
       <p>
         The end goal of this project is to build a fully autonomous robot waiter using a TurtleBot3 platform that can navigate a simulated restaurant environment, take food and drink orders from a diner via a command-line interface, plan an optimal pickup route across kitchen and water station stops, deliver the order to a dining table, and return to the kitchen, all without human intervention and without colliding with static or dynamic obstacles.
       </p>
+
       <p>
         This project sits at the intersection of perception, planning, mapping, and human-robot interaction, each of which presents a distinct technical challenge:
       </p>
@@ -111,15 +111,12 @@
         <li>
           <strong>Sensing:</strong> LiDAR and camera-based perception for environment understanding
         </li>
-
         <li>
           <strong>Mapping and Planning:</strong> A pre-built SLAM map fused with dynamic LiDAR updates, planned over by a Lee BFS global planner
         </li>
-
         <li>
           <strong>Control:</strong> Proportional controller for waypoint tracking with reactive obstacle stopping.
         </li>
-
         <li>
           <strong>Interaction:</strong> State machine for order handling and task coordination between robot modules.
         </li>
@@ -131,12 +128,11 @@
         <li>
           <strong>Lee BFS vs A*:</strong> BFS is simpler and correct for small grids. A* would be faster on larger maps but adds heuristic tuning. BFS was chosen for simplicity and reliability.
         </li>
-
         <li>
           <strong>Monocular depth estimation:</strong> Used mask pixel count and known object area for depth estimation. This avoids the need for a depth camera but is less accurate at long range or with occlusions.
         </li>
         <li>
-          <strong>Dynamic vs static obstacle classification:</strong> Classifying obstacles by COCO class (person/bag = dynamic; chair/table = static) avoids the failure mode of waiting indefinitely for a chair to move. The cost is that misclassified obstacles get the wrong response, though YOLO’s accuracy on these classes is high.
+          <strong>Dynamic vs static obstacle classification:</strong> Classifying obstacles by COCO class, such as person or bag as dynamic and chair or table as static, avoids the failure mode of waiting indefinitely for a chair to move. The cost is that misclassified obstacles get the wrong response, though YOLO's accuracy on these classes is high.
         </li>
       </ul>
 
@@ -156,55 +152,74 @@
       <ul>
         <li>
           <strong>TurtleBot3:</strong> Locomotion platform with differential drive motors and wheel odometry.
-          <img src="turtlebot.jpg" alt="turtlebot">
+          <img src="turtlebot.jpg" alt="TurtleBot3">
         </li>
 
         <li>
           <strong>Logitech Webcam:</strong> Forward-facing camera providing <code>/image_raw</code> and <code>/camera_info</code> streams for YOLO obstacle detection.
-           <img src="logitech.jpeg" alt="LogitechWebcam">
+          <img src="logitech.jpeg" alt="Logitech Webcam">
         </li>
 
         <li>
           <strong>TurtleBot3 LiDAR:</strong> 360-degree planar LiDAR providing <code>/scan</code> for occupancy grid updates.
-          <img src="lidar.jpeg" alt="Lidar_turtlebot">
+          <img src="lidar.jpeg" alt="TurtleBot3 LiDAR">
         </li>
 
         <li>
           <strong>3D-printed rear tray:</strong> Custom rear-mounted serving platform designed to hold food and drink containers securely. Please see demo video 1 to see the tray installed onto the TurtleBot!
-          <img src="Screenshot 2026-05-15 151421.png" alt="tray">
+          <img src="Screenshot 2026-05-15 151421.png" alt="3D-printed rear tray">
         </li>
       </ul>
 
       <h3>Software Overview</h3>
 
       <h4>1. Sensing Layer</h4>
-      The sensing layer is responsible for real-time perception of the environment using both LiDAR and vision.
+      <p>
+        The sensing layer is responsible for real-time perception of the environment using both LiDAR and vision.
+      </p>
+
       <ul>
-        <li>LiDAR sensing is handled <code>/scan</code>, which is converted into a local occupancy grid (<code>occupancy_grid_2d</code>). This grid captures a static stored structure and newly introduced obstacles in the environment.</li>
-        <li>Camera-based perception is handled by the <code>camera_perception</code> node, which runs a YOLOv8 segmentation model on <code>/image_raw</code>. It detects semantically meaningful obstacles (people, chairs, backpacks, etc.) and estimates their 3D position using mask-based depth estimation and the camera intrinsics. The resulting point is then transformed into the robot <code>base_link</code> using a fixed camera-to-base transform. The node tracks the closest detected obstacle per frame.</li>
+        <li>
+          LiDAR sensing is handled by <code>/scan</code>, which is converted into a local occupancy grid, <code>occupancy_grid_2d</code>. This grid captures a static stored structure and newly introduced obstacles in the environment.
+        </li>
+        <li>
+          Camera-based perception is handled by the <code>camera_perception</code> node, which runs a YOLOv8 segmentation model on <code>/image_raw</code>. It detects semantically meaningful obstacles, such as people, chairs, and backpacks, and estimates their 3D position using mask-based depth estimation and the camera intrinsics. The resulting point is then transformed into the robot <code>base_link</code> using a fixed camera-to-base transform. The node tracks the closest detected obstacle per frame.
+        </li>
       </ul>
-      The perception system outputs:
+
+      <p>The perception system outputs:</p>
+
       <ul>
-        <li><code>/obstacle_point</code> (3D obstacle location in <code>base_link</code>)</li>
-        <li><code>/obstacle_hold</code> (binary safety signal for reactive stopping)</li>
+        <li><code>/obstacle_point</code>, a 3D obstacle location in <code>base_link</code></li>
+        <li><code>/obstacle_hold</code>, a binary safety signal for reactive stopping</li>
       </ul>
 
       <h4>2. Mapping and Planning Layer</h4>
-      The mapping system fuses a pre-built SLAM map with live LiDAR updates to have a continuously updated representation of the environment.
+      <p>
+        The mapping system fuses a pre-built SLAM map with live LiDAR updates to have a continuously updated representation of the environment.
+      </p>
+
       <ul>
         <li>A static occupancy map is loaded from <code>.pgm</code> and <code>.yaml</code> files via <code>map_loader.py</code>.</li>
         <li>Dynamic obstacles are integrated using real-time updates from <code>/scan</code>.</li>
         <li>The resulting fused representation is published as a combined <code>/map</code>.</li>
       </ul>
-      The <code>lee_planner</code> node performs global path planning using a Lee’s BFS algorithm over a coarsened occupancy grid.
-      Key design steps include:
+
+      <p>
+        The <code>lee_planner</code> node performs global path planning using Lee's BFS algorithm over a coarsened occupancy grid.
+      </p>
+
+      <p>Key design steps include:</p>
+
       <ul>
         <li>Obstacle inflation to ensure safe clearance margins</li>
-        <li>Grid downsampling (factor of 7) to improve planning efficiency</li>
+        <li>Grid downsampling, by a factor of 7, to improve planning efficiency</li>
         <li>Goal snapping to nearest free cell if occupied</li>
         <li>Line-of-sight path simplification to reduce unnecessary waypoints</li>
       </ul>
-      The planner publishes:
+
+      <p>The planner publishes:</p>
+
       <ul>
         <li><code>/planning_grid</code></li>
         <li><code>/waypoint_markers</code></li>
@@ -212,13 +227,17 @@
       </ul>
 
       <h4>3. Control Layer</h4>
-      The control layer converts planned paths into motor commands for the robot.
-      A proportional controller (turtlebot_control) regulates:
+      <p>
+        The control layer converts planned paths into motor commands for the robot. A proportional controller, <code>turtlebot_control</code>, regulates:
+      </p>
+
       <ul>
         <li>Heading alignment toward the next waypoint</li>
         <li>Forward velocity based on Euclidean distance to goal</li>
       </ul>
-      This layer also integrates reactive safety behavior:
+
+      <p>This layer also integrates reactive safety behavior:</p>
+
       <ul>
         <li>Subscribes to <code>/obstacle_hold</code></li>
         <li>Immediately halts motion when a dynamic obstacle is detected</li>
@@ -226,14 +245,19 @@
       </ul>
 
       <h4>4. Interaction Layer</h4>
-      The interaction layer manages high-level task execution and human-robot communication.
-      The <code>waiter_executive</code> node implements a state machine that:
+      <p>
+        The interaction layer manages high-level task execution and human-robot communication. The <code>waiter_executive</code> node implements a state machine that:
+      </p>
+
       <ul>
         <li>Accepts diner orders via a command-line interface</li>
-        <li>Converts orders into a sequence of navigation goals (kitchen, water station, table)</li>
+        <li>Converts orders into a sequence of navigation goals, such as kitchen, water station, and table</li>
         <li>Coordinates task execution across the robot stack</li>
       </ul>
-      A companion <code>kitchen_node</code> sends the order to the chef.
+
+      <p>
+        A companion <code>kitchen_node</code> sends the order to the chef.
+      </p>
 
       <h3>Complete System Workflow</h3>
 
@@ -278,58 +302,40 @@
       <h3>Demo Video</h3>
 
       <p>
-        Please play the below videos at the same time! They are meant to be viewed synchronously, as the first video shows the how the TurtleBot navigates through the simulated restaurant environment, and the second shows how the RViZ map changes when dynamic obstacles appear, as well as the found path that the TurtleBot follows. The videos were taken at the same time in order to display a synchronous view of how the map changes as the TurtleBot moves. Since the videos show the full demo and may be long in length, feel free to speed it up by toggling the settings in the lower right corner!
+        Please play the videos below at the same time. They are meant to be viewed synchronously, as the first video shows how the TurtleBot navigates through the simulated restaurant environment, and the second shows how the RViz map changes when dynamic obstacles appear, as well as the found path that the TurtleBot follows. The videos were taken at the same time in order to display a synchronous view of how the map changes as the TurtleBot moves. Since the videos show the full demo and may be long in length, feel free to speed them up by toggling the settings in the lower right corner.
       </p>
-
-      <!-- <video controls width="90%">
-        <source src="assets/demo1.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video> -->
-
-      <!-- <a href="https://drive.google.com/file/d/1nngfx2ptKC6gzZDkSZMOKPSQhHLYnr8T/view?usp=drive_link" target="_blank">
-        <img src="https://drive.google.com/file/d/1nngfx2ptKC6gzZDkSZMOKPSQhHLYnr8T/view?usp=drive_link" alt="Watch Video" width="600">
-      </a>
-
-      <a href="https://drive.google.com/file/d/1Bh27VWz-oo06ZGIGMw6vUb1JNIBeoHXx/view?usp=drive_link" target="_blank">
-        <img src="https://drive.google.com/file/d/1Bh27VWz-oo06ZGIGMw6vUb1JNIBeoHXx/view?usp=drive_link" alt="Watch Video" width="600">
-      </a> -->
-
 
       <p>
         Video Demo 1:
-        <a href="https://youtu.be/i2WeRQsykqQ" target="_blank">
-            linked here
+        <a href="https://youtu.be/i2WeRQsykqQ" target="_blank" rel="noopener noreferrer">
+          linked here
         </a>
       </p>
-      
+
       <iframe
         src="https://www.youtube.com/embed/i2WeRQsykqQ"
         width="800"
         height="400"
-        allow="autoplay">
+        title="Toasted Turtle Demo Video 1"
+        allow="autoplay; fullscreen"
+        allowfullscreen>
       </iframe>
 
       <p>
         Video Demo 2:
-        <a href="https://youtu.be/bqkm6cg1Woc" target="_blank">
-            linked here
+        <a href="https://youtu.be/bqkm6cg1Woc" target="_blank" rel="noopener noreferrer">
+          linked here
         </a>
       </p>
-      
+
       <iframe
         src="https://www.youtube.com/embed/bqkm6cg1Woc"
         width="800"
         height="400"
-        allow="autoplay">
+        title="Toasted Turtle Demo Video 2"
+        allow="autoplay; fullscreen"
+        allowfullscreen>
       </iframe>
-
-
-      <!-- <video controls width="90%">
-        <source src="assets/demo2.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video> -->
-
-      
     </section>
 
     <!-- CONCLUSION -->
@@ -365,7 +371,7 @@
       </p>
 
       <ul>
-        <li>Classify obstacles as dynamic (people, backpacks, handbags) or static (chairs, tables, laptops).</li>
+        <li>Classify obstacles as dynamic, such as people, backpacks, and handbags, or static, such as chairs, tables, and laptops.</li>
         <li>Trigger immediate replanning for static obstacles.</li>
         <li>Use a timed hold-and-wait behavior for dynamic obstacles before replanning.</li>
       </ul>
@@ -374,41 +380,40 @@
     <!-- TEAM -->
     <section>
       <h2>Meet the Toasted Turtle Team!</h2>
-    
+
       <div class="team-grid">
-    
+
         <div class="team-member">
           <img src="ha.jpeg" alt="Ha Nguyen">
           <h3>Ha Nguyen</h3>
           <p>Senior in Data Science with a concentration in Robotics.</p>
         </div>
-    
+
         <div class="team-member">
           <img src="angela.png" alt="Angela Lee">
           <h3>Angela Lee</h3>
           <p>Senior majoring in Computer Science and Psychology.</p>
         </div>
-    
+
         <div class="team-member">
           <img src="somil.png" alt="Somil Jethra">
           <h3>Somil Jethra</h3>
           <p>Senior majoring in Electrical Engineering and Computer Sciences.</p>
         </div>
-    
+
         <div class="team-member">
           <img src="matt.jpg" alt="Matt Cullen">
           <h3>Matt Cullen</h3>
           <p>Senior majoring in Electrical Engineering and Computer Sciences.</p>
         </div>
-    
+
         <div class="team-member">
           <img src="aarsh.jpeg" alt="Aarsh Shroff">
           <h3>Aarsh Shroff</h3>
           <p>Junior majoring in Computer Science.</p>
         </div>
-    
+
       </div>
-    </section>
 
       <h3>Contributions</h3>
 
@@ -418,15 +423,15 @@
         </li>
 
         <li>
-          <strong>Angela Lee:</strong> Restaurant_mapping, mapping waypoints, LiDAR path planning, and project website setup.
+          <strong>Angela Lee:</strong> Restaurant mapping, mapping waypoints, LiDAR path planning, and project website setup.
         </li>
-        
+
         <li>
           <strong>Somil Jethra:</strong> User command terminal and state machine, kitchen node, waiter executive, UI for diner ordering and kitchen monitoring.
         </li>
 
         <li>
-          <strong>Matt Cullen:</strong> Restaurant_mapping package, including waypoints and path planning around obstacles.
+          <strong>Matt Cullen:</strong> Restaurant mapping package, including waypoints and path planning around obstacles.
         </li>
 
         <li>
@@ -437,23 +442,25 @@
 
     <section class="thank-you-section">
       <h3>Thank You!</h3>
-    
+
       <img src="images.jpeg" alt="Thank You Image" class="thank-you-image">
-    
+
       <p>
         <strong>Thank you to Jaeyun Stella Seo for mentoring our project, and the EECS 106A staff for a wonderful semester!</strong>
       </p>
     </section>
-    
+
     <section>
-      This website design was inspired by
-      <a href="https://jonbarron.info/" target="_blank">
-            Jon Barron
+      <p>
+        This website design was inspired by
+        <a href="https://jonbarron.info/" target="_blank" rel="noopener noreferrer">
+          Jon Barron
         </a>
-      and
-      <a href="https://seohong.me/" target="_blank">
-            Seohong Park
-        </a>
+        and
+        <a href="https://seohong.me/" target="_blank" rel="noopener noreferrer">
+          Seohong Park
+        </a>.
+      </p>
     </section>
 
   </div>
