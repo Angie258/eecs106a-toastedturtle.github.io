@@ -123,3 +123,8 @@ section {
   width: 350px;
   border-radius: 20px;
 }
+
+li img {
+  display: block;
+  margin-top: 10px;
+}
