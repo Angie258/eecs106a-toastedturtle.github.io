@@ -183,14 +183,14 @@
           LiDAR sensing is handled by <code>/scan</code>, which is converted into a local occupancy grid, <code>occupancy_grid_2d</code>. This grid captures a static stored structure and newly introduced obstacles in the environment.
         </li>
         <li>
-          Camera-based perception is handled by the <code>camera_perception</code> node, which runs a YOLOv8 segmentation model on <code>/image_raw</code>. It detects semantically meaningful obstacles, such as people, chairs, and backpacks, and estimates their 3D position using mask-based depth estimation and the camera intrinsics. The resulting point is then transformed into the robot <code>base_link</code> using a fixed camera-to-base transform. The node tracks the closest detected obstacle per frame.
+          Camera-based perception is handled by the <code>camera_perception</code> node, which runs a YOLOv8 segmentation model on <code>/image_raw</code>. It detects semantically meaningful obstacles, such as people, chairs, and backpacks, and estimates their 3D position using mask-based depth estimation and the camera intrinsics.
         </li>
       </ul>
 
       <p>The perception system outputs:</p>
 
       <ul>
-        <li><code>/obstacle_point</code>, a 3D obstacle location in <code>base_link</code></li>
+        <li><code>/obstacle_point</code>, a 3D obstacle location, transformed into <code>base_link</code></li>
         <li><code>/obstacle_hold</code>, a binary safety signal for reactive stopping</li>
       </ul>
 
