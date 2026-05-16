@@ -135,3 +135,30 @@ li img {
   display: block;
   margin-top: 10px;
 }
+
+.materials-row {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.materials-row figure {
+  width: 180px;
+  text-align: center;
+  margin: 0;
+}
+
+.materials-row img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.materials-row figcaption {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #444;
+}
