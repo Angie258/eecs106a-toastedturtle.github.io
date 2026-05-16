@@ -140,12 +140,13 @@ li img {
   display: flex;
   gap: 20px;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin-top: 20px;
+  overflow-x: auto
 }
 
 .materials-row figure {
-  width: 180px;
+  width: 95%;
   text-align: center;
   margin: 0;
 }
