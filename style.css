@@ -138,28 +138,28 @@ li img {
 
 .materials-row {
   display: flex;
-  gap: 20px;
-  justify-content: center;
+  gap: 10px;
+  justify-content: space-between;
   flex-wrap: nowrap;
   margin-top: 20px;
-  overflow-x: auto
+  overflow-x: auto;
 }
 
 .materials-row figure {
-  width: 95%;
+  width: 0 0 120px;
   text-align: center;
   margin: 0;
 }
 
 .materials-row img {
   width: 100%;
-  height: auto;
-  border-radius: 10px;
+  height: 90px;
+  border-radius: 8px;
   object-fit: cover;
 }
 
 .materials-row figcaption {
-  margin-top: 8px;
-  font-size: 0.9rem;
+  margin-top: 6px;
+  font-size: 0.8rem;
   color: #444;
 }
