@@ -70,9 +70,16 @@ video {
   border-radius: 10px;
 }
 
+
 /* spacing between sections */
 section {
   margin-bottom: 30px;
+}
+
+/* IMAGE */
+.image img {
+  width: 350px;
+  height: 350px;
 }
 
 .team-grid {
